@@ -1,46 +1,63 @@
 # Teto Installer
 
-Este repositorio contiene una versión mejorada del instalador para Arch Linux con Hyprland + Teto.
+Este repositorio contiene una versión segura del instalador para Arch Linux con Hyprland + Teto.
 
-Importante:
-- El script elimina el contenido del disco que elijas.
-- Debes ejecutarlo desde la ISO de instalación de Arch, como root.
-- Solo es seguro si sabes qué disco está seleccionando.
-- Se recomienda revisar `lsblk` antes de arrancar la instalación.
+Qué hace esta versión:
+- No borra el disco completo.
+- Solo formatea la partición raíz que tú elijas.
+- Usa una partición EFI existente o una que indiques.
+- Monta Btrfs en la partición seleccionada.
+- Instala Arch sobre esa partición sin tocar el resto del disco.
+
+Advertencia importante:
+- Esta versión sí formatea la partición elegida.
+- Antes de empezar, revisa `lsblk` para asegurarte de que la partición es la correcta.
+- Si no sabes qué partición es la raíz, no la uses.
 
 Requisitos:
 - ISO de Arch Linux arrancada en vivo.
 - Conexión a internet.
-- Usuario root.
+- Acceso como root.
 
-Instalación rápida:
+Comando rápido:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ranijuan/teto-installer/main/install.sh -o /tmp/teto-installer.sh && chmod +x /tmp/teto-installer.sh && bash /tmp/teto-installer.sh
 ```
 
-Revisión previa del disco:
+Antes de iniciar:
 
 ```bash
-lsblk
+lsblk -o NAME,SIZE,FSTYPE,TYPE,MOUNTPOINTS
 ```
 
-Luego, en la terminal, escribe el disco objetivo (por ejemplo `/dev/nvme0n1`) y confirma exactamente:
+Si tu partición raíz es, por ejemplo:
 
 ```bash
-TETO-ERASE
+/dev/nvme0n1p4
 ```
 
-Esto hará una instalación automática con:
-- GPT
-- EFI
-- Btrfs con subvolúmenes
-- Archinstall
-- Hyprland + Teto style setup
-- Wallpaper + atajos básicos
+y la EFI es:
 
-Advertencia:
-- No lo ejecutes sobre un disco con datos importantes.
-- Si tu equipo tiene Windows y quieres conservarlo, revisa bien el disco y el particionado.
+```bash
+/dev/nvme0n1p1
+```
 
-Este script está pensado para uso personal en pruebas controladas y entornos de instalación de Arch.
+entonces escribe exactamente:
+
+```bash
+TETO-PART
+```
+
+para confirmar.
+
+Esto hace:
+- Btrfs en `/dev/nvme0n1p4`
+- Montaje en `/mnt`
+- Uso de `/dev/nvme0n1p1` como EFI
+- Instalar Arch con Hyprland + Teto
+
+IMPORTANTE:
+- No ejecutes esto sobre una partición con datos importantes.
+- Esta versión está pensada para instalar Arch en una partición específica y segura, no para borrar todo el disco.
+
