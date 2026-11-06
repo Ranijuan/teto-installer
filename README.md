@@ -1,32 +1,46 @@
 # Teto Installer
 
-Este repositorio contiene un instalador automático para Arch Linux con Hyprland + Teto.
+Este repositorio contiene una versión mejorada del instalador para Arch Linux con Hyprland + Teto.
 
 Importante:
-- El script detecta un disco y crea particiones automáticamente.
-- Formatea y usa Btrfs.
-- Asume que lo ejecutas desde el entorno de instalación de Arch y que quieres instalar sobre el disco principal.
-- Revisa el código antes de ejecutarlo.
+- El script elimina el contenido del disco que elijas.
+- Debes ejecutarlo desde la ISO de instalación de Arch, como root.
+- Solo es seguro si sabes qué disco está seleccionando.
+- Se recomienda revisar `lsblk` antes de arrancar la instalación.
 
-Instalación rápida desde una terminal:
+Requisitos:
+- ISO de Arch Linux arrancada en vivo.
+- Conexión a internet.
+- Usuario root.
+
+Instalación rápida:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Ranijuan/teto-installer/main/install.sh -o /tmp/teto-installer.sh && chmod +x /tmp/teto-installer.sh && bash /tmp/teto-installer.sh
 ```
 
-O directamente:
+Revisión previa del disco:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/Ranijuan/teto-installer/main/install.sh)
+lsblk
 ```
 
-Si quieres ejecutarlo localmente desde el repositorio:
+Luego, en la terminal, escribe el disco objetivo (por ejemplo `/dev/nvme0n1`) y confirma exactamente:
 
 ```bash
-chmod +x install.sh
-sudo ./install.sh
+TETO-ERASE
 ```
 
-Se solicita escribir `TETO` para confirmar la instalación.
+Esto hará una instalación automática con:
+- GPT
+- EFI
+- Btrfs con subvolúmenes
+- Archinstall
+- Hyprland + Teto style setup
+- Wallpaper + atajos básicos
 
-Este proyecto está pensado para uso personal y prueba en máquinas controladas.
+Advertencia:
+- No lo ejecutes sobre un disco con datos importantes.
+- Si tu equipo tiene Windows y quieres conservarlo, revisa bien el disco y el particionado.
+
+Este script está pensado para uso personal en pruebas controladas y entornos de instalación de Arch.
