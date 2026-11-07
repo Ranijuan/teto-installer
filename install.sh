@@ -25,7 +25,7 @@ fi
 pacman -Sy --noconfirm archlinux-keyring >/dev/null 2>&1 || true
 
 clear || true
-info '=== Instalador Arch + Hyprland (destino: una partición) ==='
+info '=== Instalador Arch + Hyprland + Caelestia (destino: una partición) ==='
 warn 'No se reparticiona ningún disco. La partición raíz que elijas sí será FORMATEADA.'
 echo
 lsblk -d -o NAME,MODEL,SIZE,TYPE
@@ -117,10 +117,22 @@ mkdir -p /mnt/{boot,home}
 mount -o noatime,compress=zstd,subvol=@home "$ROOT_PART" /mnt/home
 mount "$EFI_PART" /mnt/boot
 
-info 'Instalando Arch Linux y Hyprland...'
-pacstrap -K /mnt base linux linux-firmware btrfs-progs grub efibootmgr sudo \
-  networkmanager hyprland xdg-desktop-portal-hyprland waybar foot firefox \
-  pipewire wireplumber pipewire-pulse mesa git nano
+UCODE=""
+if grep -qi 'GenuineIntel' /proc/cpuinfo; then
+  UCODE="intel-ucode"
+elif grep -qi 'AuthenticAMD' /proc/cpuinfo; then
+  UCODE="amd-ucode"
+fi
+
+info 'Instalando Arch Linux, Hyprland y paquetes base de un escritorio completo...'
+pacstrap -K /mnt base base-devel linux linux-firmware $UCODE btrfs-progs grub efibootmgr sudo \
+  networkmanager hyprland xdg-desktop-portal-hyprland xdg-desktop-portal \
+  waybar foot firefox rofi-wayland dunst swaylock swaybg \
+  grim slurp wl-clipboard polkit-kde-agent \
+  pipewire wireplumber pipewire-pulse pipewire-alsa pavucontrol brightnessctl playerctl \
+  mesa qt5-wayland qt6-wayland seatd greetd greetd-tuigreet \
+  ttf-font-awesome noto-fonts noto-fonts-emoji \
+  git nano
 
 genfstab -U /mnt >> /mnt/etc/fstab
 
@@ -140,18 +152,49 @@ HOSTS
 
 arch-chroot /mnt useradd -m -G wheel -s /bin/bash "$USERNAME"
 printf '%s:%s\n' "$USERNAME" "$USER_PASS" | arch-chroot /mnt chpasswd
-unset USER_PASS USER_PASS_CONFIRM
 printf '%%wheel ALL=(ALL:ALL) ALL\n' > /mnt/etc/sudoers.d/10-wheel
 chmod 440 /mnt/etc/sudoers.d/10-wheel
+
 arch-chroot /mnt systemctl enable NetworkManager
+arch-chroot /mnt systemctl enable seatd
+arch-chroot /mnt systemctl enable greetd
 
 info 'Instalando GRUB en la partición EFI seleccionada (sin formatearla)...'
 arch-chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=Arch --recheck
 arch-chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
 
+info 'Configurando greetd para iniciar Hyprland automáticamente al arrancar...'
+mkdir -p /mnt/etc/greetd
+cat > /mnt/etc/greetd/config.toml <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "tuigreet --remember --remember-session --cmd Hyprland"
+user = "greeter"
+EOF
+
+info 'Instalando yay (AUR helper) y Caelestia como el usuario nuevo...'
+printf '%s ALL=(ALL) NOPASSWD: ALL\n' "$USERNAME" > /mnt/etc/sudoers.d/90-temp-nopasswd
+chmod 440 /mnt/etc/sudoers.d/90-temp-nopasswd
+
+arch-chroot /mnt su - "$USERNAME" -c '
+  set -e
+  cd /tmp
+  git clone https://aur.archlinux.org/yay.git
+  cd yay
+  makepkg -si --noconfirm
+  cd /tmp
+  rm -rf yay
+  curl -fsSL https://raw.githubusercontent.com/caelestia-dots/caelestia/main/install.sh -o /tmp/caelestia-install.sh
+  bash /tmp/caelestia-install.sh --noconfirm || yay -S --noconfirm caelestia-shell-git caelestia-cli-git
+'
+
+rm -f /mnt/etc/sudoers.d/90-temp-nopasswd
+
 trap - EXIT
 umount -R /mnt
-info 'Instalación base completada.'
-echo 'Reinicia y entra con el usuario creado. Para iniciar la sesión gráfica, ejecuta: Hyprland'
+info 'Instalación completada. El equipo arrancará en greetd/Hyprland automáticamente.'
+echo 'Usuario creado, Hyprland listo para iniciar sesión solo, y Caelestia instalado.'
 read -r -p '¿Reiniciar ahora? [s/n]: ' REBOOT_ANSWER
 if [[ "$REBOOT_ANSWER" == s || "$REBOOT_ANSWER" == S ]]; then reboot; fi
