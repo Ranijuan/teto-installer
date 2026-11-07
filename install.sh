@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Instala Arch solo en una partición raíz seleccionada. No crea ni modifica
-# la tabla de particiones. La partición EFI elegida se monta sin formatearla.
-
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 
 fail() { echo -e "${RED}Error: $*${NC}" >&2; exit 1; }
@@ -15,6 +12,17 @@ warn() { echo -e "${YELLOW}$*${NC}"; }
 for cmd in lsblk findmnt pacstrap genfstab arch-chroot mkfs.btrfs btrfs grub-install grub-mkconfig; do
   command -v "$cmd" >/dev/null || fail "Falta '$cmd'. Usa una ISO oficial reciente de Arch Linux."
 done
+
+info 'Sincronizando reloj...'
+timedatectl set-ntp true || true
+sleep 2
+
+info 'Comprobando internet...'
+if ! ping -c 1 -W 3 archlinux.org >/dev/null 2>&1; then
+  fail 'Sin internet. Conéctate con nmcli o iwctl antes de continuar.'
+fi
+
+pacman -Sy --noconfirm archlinux-keyring >/dev/null 2>&1 || true
 
 clear || true
 info '=== Instalador Arch + Hyprland (destino: una partición) ==='
@@ -51,7 +59,6 @@ read -r -p 'Número de la partición ROOT que se formateará: ' ROOT_INDEX
 ((ROOT_INDEX >= 1 && ROOT_INDEX <= ${#PARTITIONS[@]})) || fail 'Número de partición fuera de rango.'
 ROOT_PART=${PARTITIONS[$((ROOT_INDEX-1))]}
 
-# Solo ofrecer como EFI particiones vfat del mismo disco y distintas de ROOT.
 EFI_CANDIDATES=()
 for p in "${PARTITIONS[@]}"; do
   [[ "$p" != "$ROOT_PART" ]] || continue
@@ -78,9 +85,8 @@ findmnt -rn -S "$ROOT_PART" >/dev/null && fail "La partición raíz está montad
 findmnt -rn -S "$EFI_PART" >/dev/null && fail "La partición EFI está montada: $EFI_PART. Desmóntala antes de continuar."
 
 ROOT_SIZE_BYTES=$(lsblk -bdnro SIZE "$ROOT_PART")
-((ROOT_SIZE_BYTES >= 20*1024*1024*1024)) || fail 'La partición ROOT debe tener al menos 20 GiB; 40 GiB es suficiente para una instalación básica.'
+((ROOT_SIZE_BYTES >= 20*1024*1024*1024)) || fail 'La partición ROOT debe tener al menos 20 GiB.'
 
-# Confirmación explícita: si no es s/S, no se escribe nada.
 echo
 warn 'REVISA cuidadosamente estos datos:'
 echo "  Disco (no se reparticionará): $DISK — $DISK_SIZE"
@@ -147,6 +153,5 @@ trap - EXIT
 umount -R /mnt
 info 'Instalación base completada.'
 echo 'Reinicia y entra con el usuario creado. Para iniciar la sesión gráfica, ejecuta: Hyprland'
-echo 'La partición EFI fue conservada; ROOT fue formateada. No se configuró Caelestia/AUR automáticamente.'
 read -r -p '¿Reiniciar ahora? [s/n]: ' REBOOT_ANSWER
 if [[ "$REBOOT_ANSWER" == s || "$REBOOT_ANSWER" == S ]]; then reboot; fi
