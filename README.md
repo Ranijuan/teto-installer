@@ -1,38 +1,34 @@
-# Teto Installer — instalación en una partición
+ARCH + HYPRLAND + CAELESTIA · dual boot con Windows · estilo Teto
+=================================================================
 
-Instalador interactivo para Arch Linux en modo UEFI. Permite elegir un disco, muestra su capacidad y todas sus particiones, y solicita seleccionar una partición raíz. **No crea ni modifica la tabla de particiones del disco.**
+Qué hay en esta carpeta
+  install.sh      el instalador (lo único que ejecutas)
+  assets/         tema de GRUB (fondo, iconos, barra de selección, theme.txt)
+  wallpapers/     tus 34 imágenes, SIN modificar (se copian tal cual a ~/Pictures/Wallpapers)
 
-## Qué hace
+Antes de empezar (en Windows)
+  1. Si usas BitLocker / Cifrado de dispositivo: guarda la clave de recuperación.
+  2. Desactiva el Inicio rápido (como administrador:  powercfg /h off).
+  3. Reduce C: en "Administración de discos" y deja espacio SIN ASIGNAR (mínimo 25 GiB, mejor 40+).
 
-- Muestra la capacidad del disco elegido y una lista de sus particiones, tamaños, sistemas de archivos y puntos de montaje.
-- Instala solo en la partición ROOT que selecciones; esa partición se formatea como Btrfs y se borra su contenido.
-- Permite elegir una partición EFI `vfat` del mismo disco. La EFI se monta en `/boot` y **no se formatea**, aunque GRUB escribirá sus propios archivos allí.
-- Antes de escribir, muestra un resumen y exige responder `s`; `n` o cualquier otra respuesta cancela.
-- Instala Arch, NetworkManager y Hyprland. No instala automáticamente paquetes de AUR ni Caelestia.
+Desde la ISO oficial de Arch (arrancada en modo UEFI)
+  1. Conéctate a internet (Wi-Fi:  iwctl).
+  2. Crea una partición Linux en el espacio libre, sin tocar la EFI ni las de Windows:
+         cfdisk /dev/nvme0n1        (cambia el disco por el tuyo)
+  3. Monta el USB que lleva esta carpeta. NO uses /mnt (el instalador lo usa como destino):
+         mkdir /root/usb && mount /dev/sdX1 /root/usb
+         bsdtar -xf /root/usb/arch-teto-installer.zip -C /root
+         cd /root/arch-teto-installer
+  4. Ejecuta:
+         bash install.sh
 
-## Requisitos
+Ajustes opcionales (variables de entorno), por ejemplo:
+  TIMEZONE=America/Mexico_City HYPR_KB_LAYOUT=latam bash install.sh
+  Valores por defecto: TIMEZONE=America/Bogota, LOCALE_MAIN=es_CO.UTF-8,
+  CONSOLE_KEYMAP=la-latin1, HYPR_KB_LAYOUT=latam, HOSTNAME_NEW=teto-arch,
+  DEFAULT_WALLPAPER=IMG_3004.jpg, WINDOWS_TITLE=Windows
 
-- Arrancar una ISO oficial reciente de Arch Linux en modo UEFI.
-- Internet y conexión eléctrica estable.
-- Una partición raíz de al menos 20 GiB (40 GiB sirve para una instalación básica).
-- Una partición EFI `vfat` existente en el mismo disco.
-- Copia de seguridad de cualquier dato que quieras conservar.
+Si Caelestia no termina de instalarse (red / AUR), el sistema base queda listo.
+Tras reiniciar, inicia sesión y ejecuta:   bash ~/terminar-caelestia.sh
 
-## Uso
-
-En la terminal de la ISO, como root:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Ranijuan/teto-installer/main/install.sh -o /tmp/teto-installer.sh && bash /tmp/teto-installer.sh
-```
-
-El script te pedirá el disco (por ejemplo `/dev/nvme0n1`), mostrará su capacidad y particiones, y luego permitirá seleccionar ROOT y EFI por número. Comprueba con atención cada selección. Para la raíz, `/dev/nvme0n1p4` sería una entrada de partición; **solo elige esa si verificaste que es la partición de 40 GiB que quieres borrar**. Selecciona también la EFI correcta (normalmente una partición pequeña `vfat`, por ejemplo `/dev/nvme0n1p1`).
-
-La instalación solo empieza si respondes `s` al resumen. Si respondes `n`, se cancela.
-
-## Advertencias
-
-- ROOT se formatea sin posibilidad de recuperación sencilla. No continúes si contiene datos que quieras conservar.
-- La EFI no se formatea, pero GRUB añade archivos de arranque a ella. Al compartirla con Windows, conserva los archivos existentes; aun así, verifica que sea la EFI correcta y que haya espacio libre.
-- El instalador no puede garantizar compatibilidad con todas las configuraciones de firmware, controladores o particionados. Revisa el script antes de ejecutarlo.
-- Es un instalador personal, no un sustituto de la guía oficial de Arch.
+Registro de la instalación: /var/log/teto-install.log (en el sistema nuevo)
