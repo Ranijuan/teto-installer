@@ -13,13 +13,19 @@ Antes de empezar (en Windows)
 
 Desde la ISO oficial de Arch (arrancada en modo UEFI)
   1. Conéctate a internet (Wi-Fi:  iwctl).
-  2. Crea una partición Linux en el espacio libre, sin tocar la EFI ni las de Windows:
+     -iwctl
+     -device list
+     -station wlan0 scan
+     -station wlan0 get-networks
+     -station wlan0 connect "NOMBRE_RED"
+     -exit
+  3. Crea una partición Linux en el espacio libre, sin tocar la EFI ni las de Windows:
          cfdisk /dev/nvme0n1        (cambia el disco por el tuyo)
-  3. Monta el USB que lleva esta carpeta. NO uses /mnt (el instalador lo usa como destino):
+  4. Monta el USB que lleva esta carpeta. NO uses /mnt (el instalador lo usa como destino):
          mkdir /root/usb && mount /dev/sdX1 /root/usb
          bsdtar -xf /root/usb/arch-teto-installer.zip -C /root
          cd /root/arch-teto-installer
-  4. Ejecuta:
+  5. Ejecuta:
          bash install.sh
 
 Ajustes opcionales (variables de entorno), por ejemplo:
